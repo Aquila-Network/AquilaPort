@@ -1,9 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"go.mongodb.org/mongo-driver/bson"
@@ -61,6 +61,10 @@ func (db *DBase) getDocuments(selector string) []Document {
 func (db *DBase) createNewDocuments(documents []Document) []Document {
 	// init a batch insert to level
 	batch := new(leveldb.Batch)
+	// array for ids
+	var ids []string
+	// array for docs
+	var docs []Document
 
 	// insert docs to batch
 	for _, doc := range documents {
@@ -73,6 +77,8 @@ func (db *DBase) createNewDocuments(documents []Document) []Document {
 		}
 		// insert doc
 		batch.Put([]byte(doc.ID), data)
+		ids = append(ids, doc.ID)
+		docs = append(docs, doc)
 	}
 
 	// write batch to level db
@@ -81,13 +87,15 @@ func (db *DBase) createNewDocuments(documents []Document) []Document {
 		fmt.Println(err)
 	}
 
-	return documents
+	// update changes DB
+	data, err := bson.Marshal(ids)
+	db.changeDB.Put([]byte(strconv.FormatInt(time.Now().Unix(), 10)), data, nil)
+
+	return docs
 }
 
-func (db *DBase) deleteDocument(w http.ResponseWriter, r *http.Request) {
+func (db *DBase) getChanges(since string, max int) ChangeDocument {
 	var ids []string
-
-	json.NewDecoder(r.Body).Decode(&ids)
 
 	// init a batch insert to level
 	batch := new(leveldb.Batch)
@@ -116,6 +124,12 @@ func (db *DBase) deleteDocument(w http.ResponseWriter, r *http.Request) {
 	// }
 	// iter.Release()
 	// err = iter.Error()
+}
 
-	json.NewEncoder(w).Encode(ids)
+func (db *DBase) commitChanges() bool {
+	return true
+}
+
+func (db *DBase) getReplLog() {
+	// return true
 }
