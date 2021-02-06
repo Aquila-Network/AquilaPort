@@ -8,8 +8,11 @@ import (
 )
 
 type conf struct {
-	Port string `yaml:"port"`
+	Port   string `yaml:"port"`
+	DBRoot string `yaml:"DBRoot"`
 }
+
+var configFile = "../port_config.yml"
 
 func (c *conf) getConf(file string) *conf {
 

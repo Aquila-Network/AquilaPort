@@ -7,8 +7,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/syndtr/goleveldb/leveldb"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 var myRouter = mux.NewRouter().StrictSlash(true)
@@ -23,9 +21,12 @@ func existsDatabaseRouter(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	databaseName := params["databaseName"]
 
-	existsDatabase(databaseName)
+	if existsDatabase(databaseName) {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
 
-	json.NewEncoder(w).Encode(map[string]string{})
 }
 
 func getDatabaseRouter(w http.ResponseWriter, r *http.Request) {
@@ -33,11 +34,13 @@ func getDatabaseRouter(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	databaseName := params["databaseName"]
 
-	createNewDatabase(databaseName)
-
-	json.NewEncoder(w).Encode(map[string]string{
-		"db_name": databaseName,
-	})
+	if existsDatabase(databaseName) {
+		json.NewEncoder(w).Encode(map[string]string{
+			"db_name": databaseName,
+		})
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
 }
 
 func createNewDatabaseRouter(w http.ResponseWriter, r *http.Request) {
@@ -45,86 +48,26 @@ func createNewDatabaseRouter(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	databaseName := params["databaseName"]
 
-	createNewDatabase(databaseName)
+	status := createNewDatabase(databaseName)
 
-	json.NewEncoder(w).Encode(map[string]bool{
-		"ok": true,
-	})
+	if status {
+		json.NewEncoder(w).Encode(map[string]bool{
+			"ok": true,
+		})
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
+	}
 }
 
 func createNewDocumentRouter(w http.ResponseWriter, r *http.Request) {
 	// decode json body
 	var documents []Document
-	json.NewDecoder(r.Body).Decode(&documents)
-
-	// init a batch insert to level
-	batch := new(leveldb.Batch)
-
-	// insert docs to batch
-	for _, doc := range documents {
-		// update document version
-		doc.Version = string(getVersion(doc))
-		// convert struct to bson
-		data, err := bson.Marshal(doc)
-		fmt.Println(err)
-		// insert doc
-		batch.Put([]byte(doc.ID), data)
-	}
-
-	// write batch to level db
-	err := sourceDb.Write(batch, nil)
-	fmt.Println(err)
-
-	// iterate over leveldb and get key, val
-	iter := sourceDb.NewIterator(nil, nil)
-	for iter.Next() {
-		key := iter.Key()
-		value := iter.Value()
-
-		var docRet Document
-		// convert bson to byte
-		bson.Unmarshal(value, &docRet)
-
-		fmt.Println(string(key), docRet)
-	}
-	iter.Release()
-	err = iter.Error()
 
 	json.NewEncoder(w).Encode(documents)
 }
 
 func deleteDocumentRouter(w http.ResponseWriter, r *http.Request) {
 	var ids []string
-
-	json.NewDecoder(r.Body).Decode(&ids)
-
-	// init a batch insert to level
-	batch := new(leveldb.Batch)
-
-	// delete docs batch
-	for _, id := range ids {
-		// delete doc
-		batch.Delete([]byte(id))
-	}
-
-	// write batch to level db
-	err := sourceDb.Write(batch, nil)
-	fmt.Println(err)
-
-	// iterate over leveldb and get key, val
-	iter := sourceDb.NewIterator(nil, nil)
-	for iter.Next() {
-		key := iter.Key()
-		value := iter.Value()
-
-		var docRet Document
-		// convert bson to byte
-		bson.Unmarshal(value, &docRet)
-
-		fmt.Println(string(key), docRet)
-	}
-	iter.Release()
-	err = iter.Error()
 
 	json.NewEncoder(w).Encode(ids)
 }
