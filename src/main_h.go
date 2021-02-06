@@ -1,4 +1,4 @@
-package util
+package main
 
 // Document struct
 type Document struct {

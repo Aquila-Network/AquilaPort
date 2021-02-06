@@ -1,8 +1,6 @@
-package db
+package main
 
 import (
-	"/util/ctypes"
-
 	"github.com/syndtr/goleveldb/leveldb"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -13,8 +11,8 @@ var (
 	sourceDb, _      = leveldb.OpenFile("./db/source", nil)
 )
 
-func getDocuments(selector string) []ctypes.Document {
-	var documents []ctypes.Document
+func getDocuments(selector string) []Document {
+	var documents []Document
 
 	if selector == "all" {
 		// iterate over leveldb and get key, val
@@ -23,7 +21,7 @@ func getDocuments(selector string) []ctypes.Document {
 			// key := iter.Key()
 			value := iter.Value()
 
-			var docRet ctypes.Document
+			var docRet Document
 			// convert bson to byte
 			bson.Unmarshal(value, &docRet)
 
