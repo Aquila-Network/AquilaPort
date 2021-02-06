@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"aquilaport/src/util/ctypes"
+	"github.com/Aquila-Network/AquilaPort/src/util/ctypes"
 )
 
 var jar, err = cookiejar.New(nil)

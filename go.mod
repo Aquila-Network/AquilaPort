@@ -1,4 +1,4 @@
-module aquilaport
+module github.com/Aquila-Network/AquilaPort
 
 go 1.15
 
