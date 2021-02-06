@@ -99,5 +99,8 @@ func handleRequests(port string) {
 	myRouter.HandleFunc("/", homePage)
 	myRouter.HandleFunc("/create", createNewDocument).Methods("POST")
 	myRouter.HandleFunc("/delete", deleteDocument).Methods("POST")
+
+	// Run server
+	fmt.Println("Aquila Port running at localhost:" + port)
 	log.Fatal(http.ListenAndServe(":"+port, myRouter))
 }

@@ -59,7 +59,7 @@ func replicatorDemon() {
 				fmt.Println("Replication log not available. Full replication needed.")
 			}
 		} else {
-			fmt.Println("Replication ID generation failed. Exiting.. ")
+			fmt.Println("Replication ID generation failed. Replication stopped. ")
 			break
 		}
 

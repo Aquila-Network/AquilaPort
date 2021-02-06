@@ -47,8 +47,10 @@ func request(url string, method string, payload string, contentType string) (int
 	res, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err)
+		return 500, nil
 
 	}
+
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
@@ -57,4 +59,5 @@ func request(url string, method string, payload string, contentType string) (int
 	}
 
 	return res.StatusCode, body
+
 }

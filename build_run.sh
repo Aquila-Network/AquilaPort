@@ -1,0 +1,1 @@
+cd src && go build -o ../bin/exec *.go && ./../bin/exec
