@@ -35,31 +35,30 @@ func (db *DBase) createNewDatabase(databaseName string) bool {
 func (db *DBase) getDocuments(selector string) []Document {
 	var documents []Document
 
-	// if selector == "all" {
-	// 	// iterate over leveldb and get key, val
-	// 	iter := sourceDb.NewIterator(nil, nil)
-	// 	for iter.Next() {
-	// 		// key := iter.Key()
-	// 		value := iter.Value()
+	if selector == "all" {
+		// iterate over leveldb and get key, val
+		iter := db.documentDB.NewIterator(nil, nil)
+		for iter.Next() {
+			// key := iter.Key()
+			value := iter.Value()
 
-	// 		var docRet Document
-	// 		// convert bson to byte
-	// 		bson.Unmarshal(value, &docRet)
+			var docRet Document
+			// convert bson to byte
+			bson.Unmarshal(value, &docRet)
 
-	// 		documents = append(documents, docRet)
-	// 	}
-	// 	iter.Release()
-	// 	// err := iter.Error()
-	// }
+			documents = append(documents, docRet)
+		}
+		iter.Release()
+		err := iter.Error()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 
 	return documents
 }
 
-func (db *DBase) createNewDocument(w http.ResponseWriter, r *http.Request) {
-	// decode json body
-	var documents []Document
-	json.NewDecoder(r.Body).Decode(&documents)
-
+func (db *DBase) createNewDocuments(documents []Document) []Document {
 	// init a batch insert to level
 	batch := new(leveldb.Batch)
 
@@ -69,31 +68,20 @@ func (db *DBase) createNewDocument(w http.ResponseWriter, r *http.Request) {
 		doc.Version = string(getVersion(doc))
 		// convert struct to bson
 		data, err := bson.Marshal(doc)
-		fmt.Println(err)
+		if err != nil {
+			fmt.Println(err)
+		}
 		// insert doc
 		batch.Put([]byte(doc.ID), data)
 	}
 
-	// // write batch to level db
-	// err := sourceDb.Write(batch, nil)
-	// fmt.Println(err)
+	// write batch to level db
+	err := db.documentDB.Write(batch, nil)
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	// // iterate over leveldb and get key, val
-	// iter := sourceDb.NewIterator(nil, nil)
-	// for iter.Next() {
-	// 	key := iter.Key()
-	// 	value := iter.Value()
-
-	// 	var docRet Document
-	// 	// convert bson to byte
-	// 	bson.Unmarshal(value, &docRet)
-
-	// 	fmt.Println(string(key), docRet)
-	// }
-	// iter.Release()
-	// err = iter.Error()
-
-	json.NewEncoder(w).Encode(documents)
+	return documents
 }
 
 func (db *DBase) deleteDocument(w http.ResponseWriter, r *http.Request) {

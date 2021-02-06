@@ -59,11 +59,37 @@ func createNewDatabaseRouter(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createNewDocumentRouter(w http.ResponseWriter, r *http.Request) {
+func getAllDocumentsRouter(w http.ResponseWriter, r *http.Request) {
+	// get URL params
+	params := mux.Vars(r)
+	databaseName := params["databaseName"]
+
+	documents := getAllDocuments(databaseName)
+
+	if documents != nil {
+		json.NewEncoder(w).Encode(documents)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
+
+}
+
+func createBulkDocumentsRouter(w http.ResponseWriter, r *http.Request) {
+	// get URL params
+	params := mux.Vars(r)
+	databaseName := params["databaseName"]
+
 	// decode json body
 	var documents []Document
+	json.NewDecoder(r.Body).Decode(&documents)
 
-	json.NewEncoder(w).Encode(documents)
+	status := createNewDocuments(databaseName, documents)
+
+	if status != nil {
+		json.NewEncoder(w).Encode(status)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
 }
 
 func deleteDocumentRouter(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +103,8 @@ func handleRequests(port string) {
 	myRouter.HandleFunc("/{databaseName}", existsDatabaseRouter).Methods("HEAD")
 	myRouter.HandleFunc("/{databaseName}", getDatabaseRouter).Methods("GET")
 	myRouter.HandleFunc("/{databaseName}", createNewDatabaseRouter).Methods("PUT")
-	myRouter.HandleFunc("/create", createNewDocumentRouter).Methods("POST")
+	myRouter.HandleFunc("/{databaseName}/_all_docs", getAllDocumentsRouter).Methods("GET", "POST")
+	myRouter.HandleFunc("/{databaseName}/_bulk_docs", createBulkDocumentsRouter).Methods("POST")
 	myRouter.HandleFunc("/delete", deleteDocumentRouter).Methods("POST")
 
 	// Run server

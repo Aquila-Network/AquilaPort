@@ -25,15 +25,19 @@ func createNewDatabase(databaseName string) bool {
 	return status
 }
 
-func getDocuments(selector string) []Document {
-	var documents []Document
-
-	return documents
+func getAllDocuments(databaseName string) []Document {
+	if dbObj, ok := databases[databaseName]; ok {
+		return dbObj.getDocuments("all")
+	}
+	return nil
 }
 
-func createNewDocument(documents []Document) []Document {
+func createNewDocuments(databaseName string, documents []Document) []Document {
 
-	return documents
+	if dbObj, ok := databases[databaseName]; ok {
+		return dbObj.createNewDocuments(documents)
+	}
+	return nil
 }
 
 func deleteDocument(ids []string) []string {
