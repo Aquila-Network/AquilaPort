@@ -18,7 +18,41 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: homePage")
 }
 
-func createNewDocument(w http.ResponseWriter, r *http.Request) {
+func existsDatabaseRouter(w http.ResponseWriter, r *http.Request) {
+	// get URL params
+	params := mux.Vars(r)
+	databaseName := params["databaseName"]
+
+	existsDatabase(databaseName)
+
+	json.NewEncoder(w).Encode(map[string]string{})
+}
+
+func getDatabaseRouter(w http.ResponseWriter, r *http.Request) {
+	// get URL params
+	params := mux.Vars(r)
+	databaseName := params["databaseName"]
+
+	createNewDatabase(databaseName)
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"db_name": databaseName,
+	})
+}
+
+func createNewDatabaseRouter(w http.ResponseWriter, r *http.Request) {
+	// get URL params
+	params := mux.Vars(r)
+	databaseName := params["databaseName"]
+
+	createNewDatabase(databaseName)
+
+	json.NewEncoder(w).Encode(map[string]bool{
+		"ok": true,
+	})
+}
+
+func createNewDocumentRouter(w http.ResponseWriter, r *http.Request) {
 	// decode json body
 	var documents []Document
 	json.NewDecoder(r.Body).Decode(&documents)
@@ -59,7 +93,7 @@ func createNewDocument(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(documents)
 }
 
-func deleteDocument(w http.ResponseWriter, r *http.Request) {
+func deleteDocumentRouter(w http.ResponseWriter, r *http.Request) {
 	var ids []string
 
 	json.NewDecoder(r.Body).Decode(&ids)
@@ -97,8 +131,11 @@ func deleteDocument(w http.ResponseWriter, r *http.Request) {
 
 func handleRequests(port string) {
 	myRouter.HandleFunc("/", homePage)
-	myRouter.HandleFunc("/create", createNewDocument).Methods("POST")
-	myRouter.HandleFunc("/delete", deleteDocument).Methods("POST")
+	myRouter.HandleFunc("/{databaseName}", existsDatabaseRouter).Methods("HEAD")
+	myRouter.HandleFunc("/{databaseName}", getDatabaseRouter).Methods("GET")
+	myRouter.HandleFunc("/{databaseName}", createNewDatabaseRouter).Methods("PUT")
+	myRouter.HandleFunc("/create", createNewDocumentRouter).Methods("POST")
+	myRouter.HandleFunc("/delete", deleteDocumentRouter).Methods("POST")
 
 	// Run server
 	fmt.Println("Aquila Port running at localhost:" + port)
