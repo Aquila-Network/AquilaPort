@@ -28,3 +28,10 @@ type ChangeDocument struct {
 	Pending int                     `json:"pending"`
 	Results []ChangeResultsDocument `json:"results"`
 }
+
+// ReplCheckpoint is Checkoint to latest replication
+type ReplCheckpoint struct {
+	ID  string `json:"id"`
+	Ok  bool   `json:"ok"`
+	Rev string `json:"rev"`
+}

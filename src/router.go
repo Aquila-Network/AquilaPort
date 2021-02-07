@@ -102,10 +102,54 @@ func getDocumentChangesRouter(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(changes)
 }
 
-func deleteDocumentRouter(w http.ResponseWriter, r *http.Request) {
-	var ids []string
+func getRevDiffRouter(w http.ResponseWriter, r *http.Request) {
+	// get URL params
+	params := mux.Vars(r)
+	databaseName := params["databaseName"]
 
-	json.NewEncoder(w).Encode(ids)
+	// decode change map
+	changeMap := make(map[string][]string)
+	json.NewDecoder(r.Body).Decode(&changeMap)
+
+	diff := getRevDiff(databaseName, changeMap)
+
+	json.NewEncoder(w).Encode(diff)
+}
+
+func ensureCommitRouter(w http.ResponseWriter, r *http.Request) {
+	// get URL params
+	params := mux.Vars(r)
+	databaseName := params["databaseName"]
+
+	status := existsDatabase(databaseName)
+
+	if status {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]bool{
+			"ok": true,
+		})
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
+func replCPointRecordRouter(w http.ResponseWriter, r *http.Request) {
+	// get URL params
+	params := mux.Vars(r)
+	databaseName := params["databaseName"]
+
+	// decode json body
+	var rcpoint ReplCheckpoint
+	json.NewDecoder(r.Body).Decode(&rcpoint)
+
+	status := replCPointRecord(databaseName, rcpoint)
+
+	if status {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(rcpoint)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
 }
 
 func handleRequests(port string) {
@@ -116,7 +160,9 @@ func handleRequests(port string) {
 	myRouter.HandleFunc("/{databaseName}/_all_docs", getAllDocumentsRouter).Methods("GET", "POST")
 	myRouter.HandleFunc("/{databaseName}/_bulk_docs", createBulkDocumentsRouter).Methods("POST")
 	myRouter.HandleFunc("/{databaseName}/_changes", getDocumentChangesRouter).Methods("GET")
-	myRouter.HandleFunc("/delete", deleteDocumentRouter).Methods("POST")
+	myRouter.HandleFunc("/{databaseName}/_revs_diff", getRevDiffRouter).Methods("POST")
+	myRouter.HandleFunc("/{databaseName}/_ensure_full_commit", ensureCommitRouter).Methods("POST")
+	myRouter.HandleFunc("/{databaseName}/_local/{replID}", replCPointRecordRouter).Methods("PUT")
 
 	// Run server
 	fmt.Println("Aquila Port running at localhost:" + port)
