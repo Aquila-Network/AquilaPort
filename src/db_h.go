@@ -17,6 +17,9 @@ type DBase struct {
 	logDB      *leveldb.DB
 }
 
+var localDB *leveldb.DB
+var replicationDB *leveldb.DB
+
 func (db *DBase) createNewDatabase(databaseName string) bool {
 	status := true
 	dbLocation := DBRoot + "/" + databaseName
@@ -32,13 +35,15 @@ func (db *DBase) createNewDatabase(databaseName string) bool {
 	}
 
 	// ChangeDB set initial value
-	data, err := db.changeDB.Get([]byte("0"), nil)
+	_, err := db.changeDB.Get([]byte("0"), nil)
 	if err != nil {
-		fmt.Println(data)
-		if len(data) <= 0 {
-			fmt.Println("Empty")
-			db.changeDB.Put([]byte("0"), []byte("0"), nil)
-		}
+		db.changeDB.Put([]byte("0"), []byte("0"), nil)
+	}
+
+	// update localDB
+	err = localDB.Put([]byte("LDB_"+databaseName), []byte("active"), nil)
+	if err != nil {
+		fmt.Println(err)
 	}
 
 	return status

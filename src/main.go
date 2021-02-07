@@ -5,7 +5,12 @@ func main() {
 	var c conf
 	port := c.getConf(configFile).Port
 
-	go replicatorDemon()
+	// initialize databases
+	initDatabases()
+	// set a random Aquila Port node ID
 
+	// start replication daemon
+	go replicatorDemon()
+	// start server & handle API calls
 	handleRequests(port)
 }

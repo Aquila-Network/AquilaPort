@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
+	"github.com/google/uuid"
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -16,6 +20,52 @@ var nalReg, _ = regexp.Compile("[^a-zA-Z0-9]+")
 
 // DBRoot is database root directory on disk
 var DBRoot = c.getConf(configFile).DBRoot
+
+func initDatabases() bool {
+	// init local DB to keep local info
+	if localDB, err = leveldb.OpenFile(DBRoot+"/localDB", nil); err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	// create node UUID
+	_, err := localDB.Get([]byte("UUID"), nil)
+	if err != nil {
+		uidNew := strings.Replace(uuid.New().String(), "-", "", -1)
+		err := localDB.Put([]byte("UUID"), []byte(uidNew), nil)
+		if err == nil {
+			return false
+		}
+	}
+
+	// try to load all databases
+	iter := localDB.NewIterator(util.BytesPrefix([]byte("LDB_")), nil)
+	for iter.Next() {
+		// Use key as database name
+		databaseName := strings.Split(string(iter.Key()), "_")[1]
+		// load database
+		createNewDatabase(databaseName)
+	}
+	iter.Release()
+	err = iter.Error()
+
+	// init replication DB to keep replication info
+	if localDB, err = leveldb.OpenFile(DBRoot+"/replicationDB", nil); err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	return true
+}
+
+func getPortUUID() string {
+	uuid, err := localDB.Get([]byte("UUID"), nil)
+	if err == nil {
+		return ""
+	}
+
+	return string(uuid)
+}
 
 func existsDatabase(databaseName string) bool {
 	if _, ok := databases[databaseName]; ok {
