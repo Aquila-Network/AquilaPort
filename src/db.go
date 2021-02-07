@@ -40,6 +40,13 @@ func createNewDocuments(databaseName string, documents []Document) []Document {
 	return nil
 }
 
+func getDocumentChanges(databaseName string) ChangeDocument {
+	if dbObj, ok := databases[databaseName]; ok {
+		return dbObj.getChanges("0", 100)
+	}
+	return ChangeDocument{}
+}
+
 func deleteDocument(ids []string) []string {
 
 	return ids

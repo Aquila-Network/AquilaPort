@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -29,6 +30,17 @@ func (db *DBase) createNewDatabase(databaseName string) bool {
 		fmt.Println(err)
 		status = false
 	}
+
+	// ChangeDB set initial value
+	data, err := db.changeDB.Get([]byte("0"), nil)
+	if err != nil {
+		fmt.Println(data)
+		if len(data) <= 0 {
+			fmt.Println("Empty")
+			db.changeDB.Put([]byte("0"), []byte("0"), nil)
+		}
+	}
+
 	return status
 }
 
@@ -61,8 +73,8 @@ func (db *DBase) getDocuments(selector string) []Document {
 func (db *DBase) createNewDocuments(documents []Document) []Document {
 	// init a batch insert to level
 	batch := new(leveldb.Batch)
-	// array for ids
-	var ids []string
+	// append ids
+	var ids string
 	// array for docs
 	var docs []Document
 
@@ -77,7 +89,11 @@ func (db *DBase) createNewDocuments(documents []Document) []Document {
 		}
 		// insert doc
 		batch.Put([]byte(doc.ID), data)
-		ids = append(ids, doc.ID)
+		if ids == "" {
+			ids = doc.ID
+		} else {
+			ids = ids + "|" + doc.ID
+		}
 		docs = append(docs, doc)
 	}
 
@@ -88,42 +104,57 @@ func (db *DBase) createNewDocuments(documents []Document) []Document {
 	}
 
 	// update changes DB
-	data, err := bson.Marshal(ids)
-	db.changeDB.Put([]byte(strconv.FormatInt(time.Now().Unix(), 10)), data, nil)
+	db.changeDB.Put([]byte(strconv.FormatInt(time.Now().Unix(), 10)), []byte(ids), nil)
 
 	return docs
 }
 
 func (db *DBase) getChanges(since string, max int) ChangeDocument {
-	var ids []string
+	// var changes []ChangeDocument
 
-	// init a batch insert to level
-	batch := new(leveldb.Batch)
+	iter := db.changeDB.NewIterator(nil, nil)
+	ok := iter.Seek([]byte(since))
+	ok = iter.Next()
+	results := []ChangeResultsDocument{}
+	lastSeq := 0
+	changeMap := map[string]ChangeResultsDocument{}
+	for ; ok; ok = iter.Next() {
+		// Use key, value
+		result := ChangeResultsDocument{}
+		for _, element := range strings.Split(string(iter.Value()), "|") {
+			// get corresponding document
+			docIn, err := db.documentDB.Get([]byte(element), nil)
+			if err == nil {
+				doc := Document{}
+				err := bson.Unmarshal(docIn, &doc)
+				if err == nil {
+					changes := []ChangeResultsChangesDocument{}
+					changes = append(changes, ChangeResultsChangesDocument{doc.Version})
+					result.Changes = changes
+					result.ID = element
+					result.Seq = lastSeq
+					result.Deleted = doc.Deleted
 
-	// delete docs batch
-	for _, id := range ids {
-		// delete doc
-		batch.Delete([]byte(id))
+					//  update changeMap to eliminate duplication
+					changeMap[element] = result
+					lastSeq = lastSeq + 1
+				} else {
+					fmt.Println(err)
+				}
+			} else {
+				fmt.Println(err)
+			}
+		}
 	}
+	iter.Release()
+	err = iter.Error()
 
-	// // write batch to level db
-	// err := sourceDb.Write(batch, nil)
-	// fmt.Println(err)
-
-	// // iterate over leveldb and get key, val
-	// iter := sourceDb.NewIterator(nil, nil)
-	// for iter.Next() {
-	// 	key := iter.Key()
-	// 	value := iter.Value()
-
-	// 	var docRet Document
-	// 	// convert bson to byte
-	// 	bson.Unmarshal(value, &docRet)
-
-	// 	fmt.Println(string(key), docRet)
-	// }
-	// iter.Release()
-	// err = iter.Error()
+	// build results from map
+	// and return changes
+	for _, result := range changeMap {
+		results = append(results, result)
+	}
+	return ChangeDocument{lastSeq - 1, 0, results}
 }
 
 func (db *DBase) commitChanges() bool {

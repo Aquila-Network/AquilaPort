@@ -92,6 +92,16 @@ func createBulkDocumentsRouter(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getDocumentChangesRouter(w http.ResponseWriter, r *http.Request) {
+	// get URL params
+	params := mux.Vars(r)
+	databaseName := params["databaseName"]
+
+	changes := getDocumentChanges(databaseName)
+
+	json.NewEncoder(w).Encode(changes)
+}
+
 func deleteDocumentRouter(w http.ResponseWriter, r *http.Request) {
 	var ids []string
 
@@ -105,6 +115,7 @@ func handleRequests(port string) {
 	myRouter.HandleFunc("/{databaseName}", createNewDatabaseRouter).Methods("PUT")
 	myRouter.HandleFunc("/{databaseName}/_all_docs", getAllDocumentsRouter).Methods("GET", "POST")
 	myRouter.HandleFunc("/{databaseName}/_bulk_docs", createBulkDocumentsRouter).Methods("POST")
+	myRouter.HandleFunc("/{databaseName}/_changes", getDocumentChangesRouter).Methods("GET")
 	myRouter.HandleFunc("/delete", deleteDocumentRouter).Methods("POST")
 
 	// Run server

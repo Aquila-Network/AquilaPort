@@ -8,13 +8,13 @@ import (
 )
 
 func getVersion(document Document) []byte {
-	// version: timestamp (milliseconds, 13 digits) + deleted
+	// version: block height + - + timestamp (milliseconds, 13 digits) + deleted
 	var delStatus byte
 	delStatus = 48
 	if document.Deleted {
 		delStatus = 49
 	}
-	versionGen := append([]byte(document.Timestamp), delStatus)
+	versionGen := append([]byte("0-"+document.Timestamp), delStatus)
 
 	return versionGen
 }

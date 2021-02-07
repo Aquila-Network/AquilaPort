@@ -11,7 +11,7 @@ type Document struct {
 
 // ChangeResultsChangesDocument is Change results document struct
 type ChangeResultsChangesDocument struct {
-	Rev []string `json:"rev"`
+	Rev string `json:"rev"`
 }
 
 // ChangeResultsDocument is Change results document struct
@@ -19,11 +19,12 @@ type ChangeResultsDocument struct {
 	Changes []ChangeResultsChangesDocument `json:"changes"`
 	ID      string                         `json:"id"`
 	Seq     int                            `json:"seq"`
+	Deleted bool                           `json:"deleted"`
 }
 
 // ChangeDocument is Change document struct
 type ChangeDocument struct {
-	LastSeq string                  `json:"last_seq"`
+	LastSeq int                     `json:"last_seq"`
 	Pending int                     `json:"pending"`
 	Results []ChangeResultsDocument `json:"results"`
 }
