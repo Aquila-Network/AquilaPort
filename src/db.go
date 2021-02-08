@@ -29,11 +29,12 @@ func initDatabases() bool {
 	}
 
 	// create node UUID
-	_, err := localDB.Get([]byte("UUID"), nil)
-	if err != nil {
+	uid := getPortUUID()
+	if string(uid) == "" {
 		uidNew := strings.Replace(uuid.New().String(), "-", "", -1)
 		err := localDB.Put([]byte("UUID"), []byte(uidNew), nil)
-		if err == nil {
+		if err != nil {
+			fmt.Println(err)
 			return false
 		}
 	}
@@ -50,21 +51,23 @@ func initDatabases() bool {
 	err = iter.Error()
 
 	// init replication DB to keep replication info
-	if localDB, err = leveldb.OpenFile(DBRoot+"/replicationDB", nil); err != nil {
+	if replicationDB, err = leveldb.OpenFile(DBRoot+"/replicationDB", nil); err != nil {
 		fmt.Println(err)
 		return false
 	}
+
+	fmt.Println("Init DBs done")
 
 	return true
 }
 
 func getPortUUID() string {
-	uuid, err := localDB.Get([]byte("UUID"), nil)
-	if err == nil {
+	uid, err := localDB.Get([]byte("UUID"), nil)
+	if err != nil {
 		return ""
 	}
 
-	return string(uuid)
+	return string(uid)
 }
 
 func existsDatabase(databaseName string) bool {
@@ -101,9 +104,9 @@ func createNewDocuments(databaseName string, documents []Document) []Document {
 	return nil
 }
 
-func getDocumentChanges(databaseName string) ChangeDocument {
+func getDocumentChanges(databaseName string, since string) ChangeDocument {
 	if dbObj, ok := databases[databaseName]; ok {
-		return dbObj.getChanges("0", 100)
+		return dbObj.getChanges(since, 100)
 	}
 	return ChangeDocument{}
 }
@@ -114,6 +117,7 @@ func getRevDiff(databaseName string, changeMap map[string][]string) map[string][
 
 	if dbObj, ok := databases[databaseName]; ok {
 		for ID, version := range changeMap {
+			fmt.Println("===", ID, version, changeMap)
 			docIn, err := dbObj.documentDB.Get([]byte(ID), nil)
 			if err == nil {
 				doc := Document{}
@@ -149,4 +153,21 @@ func replCPointRecord(databaseName string, rcpoint ReplCheckpoint) bool {
 		}
 	}
 	return false
+}
+
+func getReplCPointRecord(databaseName string, rcpointID string) (bool, ReplCheckpoint) {
+	if dbObj, ok := databases[databaseName]; ok {
+		replDoc := ReplCheckpoint{}
+
+		data, err := dbObj.logDB.Get([]byte(rcpointID), nil)
+		if err == nil {
+			err = bson.Unmarshal(data, &replDoc)
+			if err == nil {
+				return true, replDoc
+			}
+		} else {
+			fmt.Println("---")
+		}
+	}
+	return false, ReplCheckpoint{}
 }

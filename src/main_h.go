@@ -35,3 +35,13 @@ type ReplCheckpoint struct {
 	Ok  bool   `json:"ok"`
 	Rev string `json:"rev"`
 }
+
+// NodeStatus is node status structure
+type NodeStatus struct {
+	NodeID string `json:"nodeId"`
+}
+
+// ReplRequest is request to enable replication
+type ReplRequest struct {
+	Target string `json:"target"`
+}

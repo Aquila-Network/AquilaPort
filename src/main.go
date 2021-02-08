@@ -10,7 +10,7 @@ func main() {
 	// set a random Aquila Port node ID
 
 	// start replication daemon
-	go replicatorDemon()
+	go replicatorDaemon()
 	// start server & handle API calls
 	handleRequests(port)
 }
