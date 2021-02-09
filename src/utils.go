@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -17,6 +19,14 @@ func getVersion(document Document) []byte {
 	versionGen := append([]byte("0-"+document.Timestamp), delStatus)
 
 	return versionGen
+}
+
+func getReplID(sNodeID string, nodeID string, databaseName string) string {
+	stringToHash := sNodeID + nodeID + databaseName
+	hasher := sha1.New()
+	hasher.Write([]byte(stringToHash))
+	sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+	return sha
 }
 
 func request(url string, method string, payload string, contentType string) (int, []byte) {

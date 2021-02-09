@@ -53,6 +53,7 @@ func createNewDatabaseRouter(w http.ResponseWriter, r *http.Request) {
 	status := createNewDatabase(databaseName)
 
 	if status {
+		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]bool{
 			"ok": true,
 		})
@@ -88,6 +89,7 @@ func createBulkDocumentsRouter(w http.ResponseWriter, r *http.Request) {
 	status := createNewDocuments(databaseName, documents)
 
 	if status != nil {
+		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(status)
 	} else {
 		w.WriteHeader(http.StatusNotFound)
@@ -99,7 +101,7 @@ func getDocumentChangesRouter(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	databaseName := params["databaseName"]
 
-	changes := getDocumentChanges(databaseName, "0")
+	_, changes := getDocumentChanges(databaseName, "0")
 
 	json.NewEncoder(w).Encode(changes)
 }
@@ -183,7 +185,7 @@ func enableReplicationRouter(w http.ResponseWriter, r *http.Request) {
 	var replReq ReplRequest
 	json.NewDecoder(r.Body).Decode(&replReq)
 
-	status := updateReplicationStatus(databaseName, replReq, "active")
+	status := updateReplicationStatus(databaseName, "", replReq, "active")
 
 	if status {
 		w.WriteHeader(http.StatusCreated)
@@ -202,7 +204,7 @@ func disableReplicationRouter(w http.ResponseWriter, r *http.Request) {
 	var replReq ReplRequest
 	json.NewDecoder(r.Body).Decode(&replReq)
 
-	status := updateReplicationStatus(databaseName, replReq, "disabled")
+	status := updateReplicationStatus(databaseName, "", replReq, "disabled")
 
 	if status {
 		w.WriteHeader(http.StatusOK)

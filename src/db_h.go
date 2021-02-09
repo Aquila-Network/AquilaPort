@@ -75,6 +75,28 @@ func (db *DBase) getDocuments(selector string) []Document {
 	return documents
 }
 
+func (db *DBase) getDocumentsByIds(ids []string) []Document {
+	var documents []Document
+
+	for _, id := range ids {
+		data, err := db.documentDB.Get([]byte(id), nil)
+		if err == nil {
+			document := Document{}
+
+			err := bson.Unmarshal(data, &document)
+			if err == nil {
+				documents = append(documents, document)
+			} else {
+				fmt.Println(err)
+			}
+		} else {
+			fmt.Println(err)
+		}
+	}
+
+	return documents
+}
+
 func (db *DBase) createNewDocuments(documents []Document) []Document {
 	// init a batch insert to level
 	batch := new(leveldb.Batch)
@@ -114,7 +136,7 @@ func (db *DBase) createNewDocuments(documents []Document) []Document {
 	return docs
 }
 
-func (db *DBase) getChanges(since string, max int) ChangeDocument {
+func (db *DBase) getChanges(since string, max int) (string, ChangeDocument) {
 	// var changes []ChangeDocument
 
 	iter := db.changeDB.NewIterator(nil, nil)
@@ -122,9 +144,11 @@ func (db *DBase) getChanges(since string, max int) ChangeDocument {
 	ok = iter.Next()
 	results := []ChangeResultsDocument{}
 	lastSeq := 0
+	untilKey := "0"
 	changeMap := map[string]ChangeResultsDocument{}
 	for ; ok; ok = iter.Next() {
 		// Use key, value
+		untilKey = string(iter.Key())
 		result := ChangeResultsDocument{}
 		for _, element := range strings.Split(string(iter.Value()), "|") {
 			// get corresponding document
@@ -159,7 +183,7 @@ func (db *DBase) getChanges(since string, max int) ChangeDocument {
 	for _, result := range changeMap {
 		results = append(results, result)
 	}
-	return ChangeDocument{lastSeq - 1, 0, results}
+	return untilKey, ChangeDocument{lastSeq - 1, 0, results}
 }
 
 func (db *DBase) commitChanges() bool {

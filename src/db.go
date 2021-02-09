@@ -96,6 +96,13 @@ func getAllDocuments(databaseName string) []Document {
 	return nil
 }
 
+func getBulkDocuments(databaseName string, ids []string) []Document {
+	if dbObj, ok := databases[databaseName]; ok {
+		return dbObj.getDocumentsByIds(ids)
+	}
+	return nil
+}
+
 func createNewDocuments(databaseName string, documents []Document) []Document {
 
 	if dbObj, ok := databases[databaseName]; ok {
@@ -104,11 +111,11 @@ func createNewDocuments(databaseName string, documents []Document) []Document {
 	return nil
 }
 
-func getDocumentChanges(databaseName string, since string) ChangeDocument {
+func getDocumentChanges(databaseName string, since string) (string, ChangeDocument) {
 	if dbObj, ok := databases[databaseName]; ok {
 		return dbObj.getChanges(since, 100)
 	}
-	return ChangeDocument{}
+	return "0", ChangeDocument{}
 }
 
 func getRevDiff(databaseName string, changeMap map[string][]string) map[string][]string {
@@ -117,7 +124,6 @@ func getRevDiff(databaseName string, changeMap map[string][]string) map[string][
 
 	if dbObj, ok := databases[databaseName]; ok {
 		for ID, version := range changeMap {
-			fmt.Println("===", ID, version, changeMap)
 			docIn, err := dbObj.documentDB.Get([]byte(ID), nil)
 			if err == nil {
 				doc := Document{}
@@ -134,7 +140,8 @@ func getRevDiff(databaseName string, changeMap map[string][]string) map[string][
 					fmt.Println(err)
 				}
 			} else {
-				fmt.Println(err)
+				// document not available. Needs to be replicated
+				diffMap[ID] = version
 			}
 		}
 	}
@@ -166,7 +173,7 @@ func getReplCPointRecord(databaseName string, rcpointID string) (bool, ReplCheck
 				return true, replDoc
 			}
 		} else {
-			fmt.Println("---")
+			fmt.Println(">>", err)
 		}
 	}
 	return false, ReplCheckpoint{}

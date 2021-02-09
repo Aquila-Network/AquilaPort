@@ -39,7 +39,7 @@ func addBatchDocs(root string, dbName string, documents []Document) (int, []byte
 		fmt.Println(err)
 	}
 
-	dataStr := `{"docs":` + string(data) + `}`
+	dataStr := string(data)
 	return request(root+"/"+dbName+"/_bulk_docs", "POST", dataStr, "application/json")
 }
 
@@ -54,7 +54,6 @@ func getRevsDiffResp(root string, dbName string, revsDiffDoc map[string][]string
 	}
 
 	dataStr := string(data)
-	fmt.Println(dataStr)
 	return request(root+"/"+dbName+"/_revs_diff", "POST", dataStr, "")
 }
 
@@ -62,6 +61,12 @@ func ensureCommit(root string, dbName string) (int, []byte) {
 	return request(root+"/"+dbName+"/_ensure_full_commit", "POST", "", "application/json")
 }
 
-func setReplChkPoint(root string, dbName string, replLog []byte) (int, []byte) {
-	return request(root+"/"+dbName+"/_ensure_full_commit", "POST", string(replLog), "application/json")
+func setReplChkPoint(root string, dbName string, replLog ReplCheckpoint) (int, []byte) {
+	data, err := json.Marshal(replLog)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	dataStr := string(data)
+	return request(root+"/"+dbName+"/_local", "PUT", dataStr, "application/json")
 }
